@@ -1,0 +1,751 @@
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef LIFECELL_H
+#  define LIFECELL_H
+
+#  include <string>
+   using std::string;
+
+   class LifeCell
+   {
+      protected: 
+
+      	static const int ROWS{45};
+      	static const int COLS{78};
+      	int count{0}, rows{0}, cols{0};	//count is the number of neighbors alive counted
+      	string pattern;		//the index of the initial pattern chosen.
+      	bool bOpen{false};		//states whether the file was opened successfully
+
+      	char cell [ROWS][COLS];	//Grid of cells.  If '*' -> cell is alive, if '.' -> cell is dead 
+      	char nextCellState[ROWS][COLS];	
+
+         void InitializeBoard();	//reads the pattern file and initializes the board
+      	virtual void GetLivingNeighbors(int r, int c) = 0;
+      	virtual void UpdateCells() = 0;		//apply the rules here	
+      	void SetNextState();		//set new states into the cells	
+
+   public:
+
+   	LifeCell();			//default constructor.  All cells are dead initially.
+   	void SetPattern(string pat);	//Sets the initial pattern and calls InitializeBoard		
+      void UpdateBoard();	//Calculates the next generation, sets the new values into the grid 
+                           // and calls SetNextState()	
+      string PrintBoard();	      //returns a string of the board for display
+      void Clear();		      //Reset the board to all dead cells	
+      bool FileOpen();        //Return true if the pattern file was opened, false otherwise
+};
+
+#endif
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include <iostream>
+#include <fstream>
+
+#include "lifecell.h"
+
+// ----------------
+// public methods
+// ----------------
+
+LifeCell::LifeCell()
+{
+   // Set all cells to '.' initially (dead)
+
+   Clear();
+}
+
+void LifeCell::SetPattern(string pat)
+{
+   pattern = pat;
+   InitializeBoard();
+}
+
+void LifeCell::UpdateBoard()
+{
+   UpdateCells();
+   SetNextState();
+}
+
+string LifeCell::PrintBoard()
+{
+   string theString;
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+         theString += cell[i][j];
+
+      theString += "\n";
+   }
+
+   return(theString);
+}
+
+void LifeCell::Clear()
+{
+   for(int i = 0; i < ROWS; i ++)
+      for(int j = 0; j < COLS; j ++)
+         cell[i][j] = '.';
+}
+
+// -------------------
+// protected methods
+// -------------------
+
+void LifeCell::InitializeBoard()
+{
+   std::ifstream in(pattern);
+
+   if(!in)
+   {
+      std::cout << "Could not open pattern file: [" << pattern << "]\n";
+      bOpen = false;
+      return;
+   }
+
+   bOpen = true;
+   in >> rows >> cols;
+
+   string line;
+   getline(in, line);
+
+   for(int i = 0; i < rows; i ++)
+   {
+      getline(in, line);
+
+      for(int j = 0; j < cols; j ++)
+         cell[i][j] = line[j];
+   }
+}
+
+void LifeCell::SetNextState()
+{
+   for(int i = 0; i < rows; i ++)
+      for(int j = 0; j < cols; j ++)
+         cell[i][j] = nextCellState[i][j];
+}
+
+bool LifeCell::FileOpen()
+{
+   return(bOpen);
+}
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef FREDKINCELL_H
+#  define FREDKINCELL_H
+
+#  include "lifecell.h"
+
+   class FredkinCell : public LifeCell
+   {
+      public:
+
+         void GetLivingNeighbors(int r, int c);
+         void UpdateCells();
+   };
+
+#endif
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "fredkincell.h"
+
+void FredkinCell::GetLivingNeighbors(int r, int c)
+{
+   count = 0;
+
+   for(int i = -1; i <= 1; i ++)
+   {
+      for(int j = -1; j <= 1; j ++)
+      {
+         if(i && j)
+            continue;
+
+         int rValue = r + i;
+         int cValue = c + j;
+
+         if(rValue >= 0 && rValue < rows &&
+            cValue >= 0 && cValue < cols)
+         {
+            if(cell[rValue][cValue] == '*')
+               count++;
+         }
+      }
+   }
+}
+
+void FredkinCell::UpdateCells()
+{
+   // Populate 'nextCellState' appropriately given 'cell'
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+      {
+         GetLivingNeighbors(i, j);
+
+         char next = '\0';
+
+         if(cell[i][j] == '.')
+         {
+            if(count == 1 || count == 3)
+               next = '*';
+         }
+         else
+         {
+            if(count == 0 || count == 2 || count == 4)
+               next = '.';
+         }
+
+         if(next)
+            nextCellState[i][j] = next;
+
+         else
+            nextCellState[i][j] = cell[i][j];
+      }
+   }
+}
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef CONWAYCELL_H
+#  define CONWAYCELL_H
+
+#  include "lifecell.h"
+
+   class ConwayCell : public LifeCell
+   {
+      public:
+
+         void GetLivingNeighbors(int r, int c);
+         void UpdateCells();
+   };
+
+#endif
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "conwaycell.h"
+
+void ConwayCell::GetLivingNeighbors(int r, int c)
+{
+   count = 0;
+
+   for(int i = -1; i <= 1; i ++)
+   {
+      for(int j = -1; j <= 1; j ++)
+      {
+         if(i || j)
+         {
+            int rValue = r + i;
+            int cValue = c + j;
+
+            if(rValue >= 0 && rValue < rows &&
+               cValue >= 0 && cValue < cols)
+            {
+               if(cell[rValue][cValue] == '*')
+                  count++;
+            }
+         }
+      }
+   }
+}
+
+void ConwayCell::UpdateCells()
+{
+   // Populate 'nextCellState' appropriately given 'cell'
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+      {
+         GetLivingNeighbors(i, j);
+
+         bool deadCell = true;
+
+         if(cell[i][j] == '*')
+         {
+            if(count == 2 || count == 3)
+               deadCell = false;
+         }
+         else
+         {
+            if(count == 3)
+               deadCell = false;
+         }
+
+         nextCellState[i][j] = (deadCell ? '.' : '*');
+      }
+   }
+}
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef MLENGELACELL_H
+#  define MLENGELACELL_H
+
+#  include "conwaycell.h"
+
+   class MlengelaCell : public ConwayCell
+   {
+      public:
+
+         void UpdateCells();
+   };
+
+#endif
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "mlengelacell.h"
+
+void MlengelaCell::UpdateCells()
+{
+   // Populate 'nextCellState' appropriately given 'cell'
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+      {
+         GetLivingNeighbors(i, j);
+
+         // Our rules are simple:
+         //
+         //    1) A live cell remains alive if it has 3 or more neighbors
+         //    2) A dead cell becomes alive if it has 2 or more neighbors
+
+         bool deadCell = true;
+
+         if(cell[i][j] == '*')
+         {
+            if(count >= 3)
+               deadCell = false;
+         }
+         else
+         {
+            if(count >= 2)
+               deadCell = false;
+         }
+
+         nextCellState[i][j] = (deadCell ? '.' : '*');
+      }
+   }
+}
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef MODIFIEDFREDKINCELL_H
+#  define MODIFIEDFREDKINCELL_H
+
+#  include "fredkincell.h"
+
+   class ModifiedFredkinCell : public FredkinCell
+   {
+      public:
+
+         ModifiedFredkinCell();
+         void UpdateCells();
+
+      private:
+
+         int age[ROWS][COLS];
+   };
+
+#endif
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "modifiedfredkincell.h"
+
+ModifiedFredkinCell::ModifiedFredkinCell()
+{
+   for(int i = 0; i < rows; i ++)
+      for(int j = 0; j < cols; j ++)
+         age[i][j] = 0;
+}
+
+void ModifiedFredkinCell::UpdateCells()
+{
+   // Populate 'nextCellState' appropriately given 'cell'
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+      {
+         if(cell[i][j] == '*' && age[i][j] >= 2)
+         {
+            // This cell is alive and has been for
+            // at least two generations, treat it as a conway cell
+
+            int liveCount = 0;
+
+            for(int k = -1; k <= 1; k ++)
+            {
+               for(int m = -1; m <= 1; m ++)
+               {
+                  if(k || m)
+                  {
+                     int rValue = i + k;
+                     int cValue = j + m;
+
+                     if(rValue >= 0 && rValue < rows &&
+                        cValue >= 0 && cValue < cols)
+                     {
+                        if(cell[rValue][cValue] == '*')
+                           liveCount++;
+                     }
+                  }
+               }
+            }
+
+            if(liveCount == 2 || liveCount == 3)
+            {
+               nextCellState[i][j] = '*';
+               age[i][j]++;
+            }
+            else
+            {
+               nextCellState[i][j] = '.';
+               age[i][j] = 0;
+            }
+         }
+         else
+         {
+            GetLivingNeighbors(i, j);
+
+            char next = '\0';
+
+            if(cell[i][j] == '.')
+            {
+               if(count == 1 || count == 3)
+                  next = '*';
+            }
+            else
+            {
+               if(count == 0 || count == 2 || count == 4)
+                  next = '.';
+
+               else
+                  age[i][j]++;
+            }
+
+            if(next)
+               nextCellState[i][j] = next;
+
+            else
+              nextCellState[i][j] = cell[i][j]; 
+
+            if(nextCellState[i][j] == '.')
+               age[i][j] = 0;
+         }
+      }
+   }
+}
+
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#ifndef SEEDSCELL_H
+#  define SEEDSCELL_H
+
+#  include "lifecell.h"
+
+   class SeedsCell : public LifeCell
+   {
+      public:
+
+         void GetLivingNeighbors(int r, int c);
+         void UpdateCells();
+   };
+
+#endif
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "seedscell.h"
+
+void SeedsCell::GetLivingNeighbors(int r, int c)
+{
+   count = 0;
+
+   for(int i = -1; i <= 1; i ++)
+   {
+      for(int j = -1; j <= 1; j ++)
+      {
+         if(i || j)
+         {
+            int rValue = r + i;
+            int cValue = c + j;
+
+            if(rValue >= 0 && rValue < rows &&
+               cValue >= 0 && cValue < cols)
+            {
+               if(cell[rValue][cValue] == '*')
+                  count++;
+            }
+         }
+      }
+   }
+}
+
+void SeedsCell::UpdateCells()
+{
+   // Populate 'nextCellState' appropriately given 'cell'
+
+   for(int i = 0; i < rows; i ++)
+   {
+      for(int j = 0; j < cols; j ++)
+      {
+         GetLivingNeighbors(i, j);
+
+         char next = '.';
+
+         if(cell[i][j] == '.' && count == 2)
+            next = '*';
+
+         nextCellState[i][j] = next;
+      }
+   }
+}
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include<string>
+#include<Windows.h>
+#include "LifeCell.h"
+
+using namespace std;
+
+#ifndef FUNCTIONS_H
+#define FUNCTIONS_H
+class Functions
+{
+	void WriteInstructions();
+	int UserChoosesAnImplementation();
+	string UserChoosesInitialPattern();
+};
+void WriteHeader();      // Writing header of the game of life
+void GoodBye();          // saying goodbye to a user
+bool DoAnother();         // Ask the user to do another
+
+#endif
+
+
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include "Functions.h"
+#include<iostream>
+
+
+void Functions::WriteInstructions()
+{
+	std::cout << "\n\n\t Here are the rules of the Game of Life:"
+		<< "\n\n 1. Conway: Cells evolve depending on how many of its 8 neighbours:"
+		<< "\n The rules for going from one generation to the next for Conway Cells are:"
+		<< "\n ** A dead cell becomes a live cell, if exactly 3 neighbors are alive."
+		<< "\n ** A live cell becomes a dead cell if less than 2 or more than 3 neigbours are: "
+		<< " ** Otherwise it stays the same."
+		<< "\n\n 2. Fredkin: Cells stay alive depending on how many of its 4 neighbours are a "
+		<< " The rules from going from one generation to the next for Fredkin Cells are: "
+		<< "\n ** A dead cell becomes a live cell if 1 or 3 neighbour are alive."
+		<< "\n ** A live cell becomes a dead cell, if 0, 2, or 4 neigbours are alive."
+		<< "\n ** Otherwise it stays the same. "
+		<< "\n\n 3. A mixture of Fredkin and Conway: The cells begin as Fredkin cells,"
+		<< "\n If a Fredkin Cell's age becomes 2, then it becomes a live Conway Cell instead. "
+		<< "\n\n 4. Seeds: Seeds is a pattern of chaotic evolution. \n Cells evolve depending "
+		<< "its 8 neigbours are alive."
+		<< "\n The rules for going from one generation to the next for Seeds are: "
+		<< "\n ** A cell becomes a live cell if it is dead but has exactly 2 neigbours that are:"
+		<< "\n ** All other live cells become dead."
+		<< "\n\n 5. Alex: Alex is a variant of Conway, except that death by overpopulation "
+		<< "\n comes if neighbours > 7, death by underpopulation comes if neighbours < 2 "
+		<< "\n and rebirth by reproduction comes if neighbours == 2.";
+	
+}
+
+int Functions::UserChoosesAnImplementation()
+{
+	return 0;
+}
+
+string Functions::UserChoosesInitialPattern()
+{
+	return string();
+}
+
+void WriteHeader()
+{
+	std::cout << "----------------------------------------------------------------\n";
+	std::cout << "Name: Daudi Mlengela\n";
+	std::cout << "Program title: the game of life\n";
+	std::cout << "Program objective: To implement the game of life using" <<
+		"variety of  different cell types\n";
+	std::cout << "----------------------------------------------------------------\n";
+}
+
+void GoodBye()
+{
+	std::cout << "\n\n GoodBye - hope you enjoyed my Game of Life with a variety of patterns! "
+		<< endl << endl;
+}
+
+bool DoAnother()
+{
+	string doAgain;
+	std::cout << "Try Another game? yes/no    ";
+	getline(cin, doAgain);
+	if (doAgain == "yes") {
+		return true;
+	}
+	return false;
+}
+/**************************************************************************
+* Program: Game of Life
+* Programmer: Daudi Mlengela(dmlengela@cnm.edu)
+* Date: December 8th, 2022
+* To create a Game of life using A variety of different cells.
+***************************************************************************/
+#include <iostream>
+#include <windows.h>
+
+#include "modifiedfredkincell.h"
+#include "mlengelacell.h"
+#include "fredkincell.h"
+#include "conwaycell.h"
+#include "seedscell.h"
+
+int main()
+{
+   std::cout << "----------------------------------------------------------------\n";
+   std::cout << "name: Daudi Mlengela\n";
+   std::cout << "program title: the game of life\n";
+   std::cout << "program objective: To implement the game of life using\n" <<
+                "   a variety of  different cell types\n";
+   std::cout << "----------------------------------------------------------------\n";
+
+   LifeCell *pLife[5];
+
+   ConwayCell          con;
+   FredkinCell         fred;
+   ModifiedFredkinCell modFred;
+   SeedsCell           seed;
+   MlengelaCell        mc;
+
+   pLife[0] = &con;
+   pLife[1] = &fred;
+   pLife[2] = &modFred;
+   pLife[3] = &seed;
+   pLife[4] = &mc;
+
+   bool go = true;
+
+   while(go)
+   {
+      std::cout << "Cell types:\n";
+      std::cout << "   1) Conway\n";
+      std::cout << "   2) Fredkin\n";
+      std::cout << "   3) ModifiedFredkin\n";
+      std::cout << "   4) Seeds\n";
+      std::cout << "   5) Mlengela\n";
+
+      int config = 0;
+
+      std::cin >> config;
+
+      if(config < 1 || config > 5)
+      {
+         std::cout << "Please enter a number from 1 to 5!\n";
+         continue;
+      }
+
+      // Config is 1-based, our array is 0-based
+      --config;
+
+      std::cout << "Patterns:\n";
+      std::cout << "   pulsar.txt\n";
+      std::cout << "   cross.txt\n";
+      std::cout << "   x.txt\n";
+      std::cout << "   blinker.txt\n";
+      std::cout << "   glider.txt\n";
+
+      string pattern;
+      std::cin >> pattern;
+
+      pLife[config]->SetPattern(pattern);
+
+      if(pLife[config]->FileOpen())
+      {
+         int lifeCount = 0;
+
+         do
+         {
+            pLife[config]->UpdateBoard();
+            std::cout << pLife[config]->PrintBoard();
+            Sleep(150);
+            system("cls");
+            lifeCount++;
+
+         }  while(lifeCount < 200);
+      }
+
+      char answer = '\0';
+
+      std::cout << "Try another game? y/n: ";
+      std::cin >> answer;
+
+      if(answer != 'y' && answer != 'Y')
+         go = false;
+   }
+}
