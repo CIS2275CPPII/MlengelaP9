@@ -49,6 +49,8 @@ Open another do-while or while loop that will set the game in motion and roll th
 <img width="669" height="124" alt="image" src="https://github.com/user-attachments/assets/0070d792-2edf-4593-9b97-54d3b7f5f31d" />
 
 # Sources:
+  * [Inheritance](https://www.tutorialspoint.com/cplusplus/cpp_inheritance.htm)
+  * [Polymorphism](https://www.tutorialspoint.com/cplusplus/cpp_polymorphism.htm)
 
 # Usage:
 
